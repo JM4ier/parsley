@@ -93,9 +93,95 @@ impl Grammar {
 
     fn n_del(&mut self) {
         let mut nullable = vec![false; self.rules.len()];
-        let mut nullable_known = vec![false; self.rules.len()];
+        let mut rev = vec![Vec::new(); self.rules.len()];
+
+        for (idx, rule) in self.rules.iter().enumerate() {
+            for tok in rule.iter().flatten() {
+                match tok {
+                    Token::NT(nt) => rev[*nt].push(idx),
+                    _ => (),
+                }
+            }
+        }
+
+        for r in rev.iter_mut() {
+            r.sort();
+            r.dedup();
+        }
+
+        let mut q = Vec::new();
+        for (idx, rule) in self.rules.iter().enumerate() {
+            if rule.contains(&Vec::new()) {
+                nullable[idx] = true;
+                q.push(idx);
+            }
+        }
+
+        while let Some(idx) = q.pop() {
+            if nullable[idx] {
+                continue;
+            }
+            for def in self.rules[idx].iter() {
+                if def.iter().all(|t| match t {
+                    Token::NT(nt) => nullable[*nt],
+                    _ => false,
+                }) {
+                    nullable[idx] = true;
+                    for &next in rev[idx].iter() {
+                        if !nullable[next] {
+                            q.push(next)
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        for (idx, rule) in self.rules.iter_mut().enumerate() {
+            let mut new_defs = Vec::new();
+            for def in rule.iter() {
+                let mut nulls = Vec::new();
+                for (i, token) in def.iter().enumerate() {
+                    if let Token::NT(nt) = token {
+                        if nullable[*nt] {
+                            nulls.push(i)
+                        }
+                    }
+                }
+                for k in 0..((1 << nulls.len()) - 1) {
+                    let mut def = def.clone();
+                    for i in (0..nulls.len()).rev() {
+                        if (1 << i) & k == 0 {
+                            def.remove(nulls[i]);
+                        }
+                    }
+                    new_defs.push(def);
+                }
+            }
+
+            rule.append(&mut new_defs);
+            rule.sort();
+            rule.dedup();
+
+            if idx != self.start {
+                rule.retain(|def| def.len() > 0);
+            }
+        }
     }
-    fn n_unit(&mut self) {}
+    fn n_unit(&mut self) {
+        for r in 0..self.rules.len() {
+            let mut i = 0;
+            while i < self.rules[r].len() {
+                if self.rules[r][i].len() == 1 {
+                    if let Token::NT(nt) = self.rules[r][i][0] {
+                        let mut new_rules = self.rules[nt].clone();
+                        self.rules[r].append(&mut new_rules);
+                    }
+                }
+                i += 1;
+            }
+        }
+    }
 }
 
 // simplifications
