@@ -1,120 +1,102 @@
-use crate::bnf::*;
-use nom::{
-    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*,
-    IResult,
-};
-
+#[cfg(test)]
 mod test;
 
-const SPECIAL_CHARS: &str = "=|<>()[]{}";
+use crate::bnf::*;
+use crate::lex::Token;
 
-type Res<'a, T> = IResult<&'a str, T>;
-
-macro_rules! delim {
-    ($left:literal, $right:literal, $parse:expr) => {
-        delimited(tag($left), $parse, tag($right))
+macro_rules! consume {
+    ($line:expr, $pat:pat) => {
+        consume!($line, $pat, {})
     };
+    ($line:expr, $pat:pat, $block:stmt) => {{
+        if $line.len() > 0 {
+            if let $pat = &$line[0] {
+                *$line = &$line[1..];
+                $block
+            } else {
+                Err("expected a token, too lazy for proper error message.")?;
+            }
+        } else {
+            Err("expected a token, too lazy for proper error message.")?;
+        }
+    }};
 }
 
-pub fn bnf_rules(i: &str) -> Res<Vec<BnfRule>> {
-    separated_list1(tag("\n"), bnf_rule)(i)
+pub fn parse(tokens: &[Token]) -> Result<Vec<BnfRule>, String> {
+    let lines = tokens.split(|t| *t == Token::Newline);
+    let mut rules = Vec::new();
+    for mut line in lines {
+        if line.len() == 0 {
+            continue;
+        }
+
+        let line = &mut line;
+
+        use Token::*;
+
+        let mut name = Default::default();
+        consume!(line, RuleOpen);
+        consume!(line, String(ref s), name = s.clone());
+        consume!(line, RuleClose);
+        consume!(line, Assign);
+        let def = rparse(line, None)?;
+        let rule = BnfRule { name, def };
+        rules.push(rule);
+    }
+    Ok(rules)
 }
 
-pub fn bnf_rule(i: &str) -> Res<BnfRule> {
-    map(
-        tuple((rule_name, tag("<="), bnf_rule_def)),
-        |(name, _, def)| BnfRule { name, def },
-    )(i)
-}
+fn rparse(tokens: &mut &[Token], closing: Option<Token>) -> Result<BnfPart, String> {
+    use BnfPart::*;
+    use Token::*;
 
-pub fn bnf_rule_def(i: &str) -> Res<BnfPart> {
-    terminated(rule_def, alt((eof, tag("\n"))))(i)
-}
+    let mut acc = Vec::new();
+    let mut alts = Vec::new();
 
-fn rule_def(i: &str) -> Res<BnfPart> {
-    for closing in vec![")", ">", "]"] {
-        if i.starts_with(closing) || i == "" {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                i,
-                nom::error::ErrorKind::Fix,
-            )));
+    let push_acc = |acc: &mut Vec<_>, alts: &mut Vec<_>| {
+        let alt = if acc.len() == 0 {
+            BnfPart::Empty
+        } else if acc.len() == 1 {
+            acc.clone().into_iter().next().unwrap()
+        } else {
+            BnfPart::Concat(acc.clone())
+        };
+        alts.push(alt);
+        *acc = Vec::new();
+    };
+
+    while tokens.len() > 0 {
+        let first = &tokens[0];
+        *tokens = &tokens[1..];
+        match first {
+            RuleOpen => {
+                consume!(tokens, String(ref s), acc.push(BnfPart::Rule(s.clone())));
+                consume!(tokens, RuleClose);
+            }
+            GroupOpen => acc.push(rparse(tokens, Some(GroupClose))?),
+            OptOpen => acc.push(BnfPart::Opt(rparse(tokens, Some(OptClose))?)),
+            RepOpen => acc.push(BnfPart::Repeat(Box::new(rparse(tokens, Some(RepClose))?))),
+            String(s) => acc.push(Literal(s.clone())),
+            Alternative => push_acc(&mut acc, &mut alts),
+            token => {
+                if Some(token.clone()) == closing {
+                    break;
+                } else {
+                    Err(format!("unexpected token `{:?}`", token))?;
+                }
+            }
         }
     }
-    map(
-        many1(alt((choice, grouped, rule_instant, opt, rep, lit))),
-        |parts| {
-            if parts.len() == 1 {
-                parts.into_iter().next().unwrap()
-            } else {
-                BnfPart::Concat(parts)
-            }
-        },
-    )(i)
-}
 
-fn rule_def1(i: &str) -> Res<BnfPart> {
-    for closing in vec![")", ">", "]"] {
-        if i.starts_with(closing) || i == "" {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                i,
-                nom::error::ErrorKind::Fix,
-            )));
-        }
-    }
-    map(
-        many1(alt((grouped, rule_instant, opt, rep, lit))),
-        |parts| {
-            if parts.len() == 1 {
-                parts.into_iter().next().unwrap()
-            } else {
-                BnfPart::Concat(parts)
-            }
-        },
-    )(i)
-}
+    push_acc(&mut acc, &mut alts);
 
-fn rule_name(i: &str) -> Res<String> {
-    let name_parse = map(
-        take_while1(|c: char| !SPECIAL_CHARS.contains(c)),
-        str::to_string,
-    );
-    delim!("<", ">", name_parse)(i)
-}
+    let res = if alts.len() == 0 {
+        BnfPart::Empty
+    } else if alts.len() == 1 {
+        alts[0].clone()
+    } else {
+        BnfPart::Choice(alts)
+    };
 
-fn choice(i: &str) -> Res<BnfPart> {
-    let sl2 = tuple((rule_def1, tag("|"), separated_list1(tag("|"), rule_def1)));
-    map(sl2, |(head, _, mut tail)| {
-        tail.insert(0, head);
-        BnfPart::Choice(tail)
-    })(i)
-}
-
-fn rule_instant(i: &str) -> Res<BnfPart> {
-    map(rule_name, |name| BnfPart::Rule(name))(i)
-}
-
-fn grouped(i: &str) -> Res<BnfPart> {
-    delim!("(", ")", rule_def)(i)
-}
-
-fn rep(i: &str) -> Res<BnfPart> {
-    delim!("{", "}", map(rule_def, |e| BnfPart::Repeat(Box::new(e))))(i)
-}
-
-fn opt(i: &str) -> Res<BnfPart> {
-    let map = map(rule_def, |e| BnfPart::Opt(e));
-    delim!("[", "]", map)(i)
-}
-
-fn lit(i: &str) -> Res<BnfPart> {
-    map_res(
-        escaped(none_of(SPECIAL_CHARS), '\\', one_of(SPECIAL_CHARS)),
-        |lit: &str| {
-            if lit.len() == 0 {
-                Err("empty literal")
-            } else {
-                Ok(BnfPart::Literal(lit.to_string()))
-            }
-        },
-    )(i)
+    Ok(res)
 }

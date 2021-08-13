@@ -1,124 +1,45 @@
-#[cfg(test)]
 use super::*;
-#[cfg(test)]
 use rand::prelude::*;
+use BnfPart::*;
 
-#[test]
-fn alphanumeric_literals() {
-    assert_eq!(lit("abc"), Ok(("", BnfPart::Literal("abc".to_string()))));
-    assert_eq!(lit("123"), Ok(("", BnfPart::Literal("123".to_string()))));
-    assert_eq!(
-        lit("abc123"),
-        Ok(("", BnfPart::Literal("abc123".to_string())))
-    );
+fn full_parse(bnf: &str) -> BnfPart {
+    use crate::lex::*;
+    let tokens = lex(bnf).into_iter().map(|(_, t)| t).collect::<Vec<_>>();
+    let mut tokens: &[_] = &tokens;
+    rparse(&mut tokens, None).unwrap()
 }
 
 #[test]
 fn literal_choice2() {
     assert_eq!(
-        bnf_rule_def("a|b"),
-        Ok((
-            "",
-            BnfPart::Choice(vec!(
-                BnfPart::Literal("a".to_string()),
-                BnfPart::Literal("b".to_string()),
-            ))
-        ))
+        full_parse("a|b"),
+        Choice(vec![Literal("a".into()), Literal("b".into())])
     )
 }
 
 #[test]
 fn literal_choice3() {
     assert_eq!(
-        bnf_rule_def("a|b|c"),
-        Ok((
-            "",
-            BnfPart::Choice(vec!(
-                BnfPart::Literal("a".to_string()),
-                BnfPart::Literal("b".to_string()),
-                BnfPart::Literal("c".to_string()),
-            ))
-        ))
-    )
-}
-
-#[test]
-fn basic_grouping() {
-    assert_eq!(
-        bnf_rule_def("(abc)"),
-        Ok(("", BnfPart::Literal("abc".to_string())))
-    );
-}
-
-#[test]
-fn big_grouping() {
-    assert_eq!(
-        bnf_rule_def("((((((abc))))))"),
-        Ok(("", BnfPart::Literal("abc".to_string())))
-    );
-}
-
-#[test]
-fn concat_grouping() {
-    assert_eq!(
-        bnf_rule_def("(a)(b)"),
-        Ok((
-            "",
-            BnfPart::Concat(vec![
-                BnfPart::Literal("a".to_string()),
-                BnfPart::Literal("b".to_string())
-            ])
-        ))
-    );
-}
-
-#[test]
-fn choice_grouping() {
-    assert_eq!(
-        bnf_rule_def("(a|b)|c"),
-        Ok((
-            "",
-            BnfPart::Choice(vec!(
-                BnfPart::Choice(vec!(
-                    BnfPart::Literal("a".to_string()),
-                    BnfPart::Literal("b".to_string())
-                )),
-                BnfPart::Literal("c".to_string()),
-            ))
-        ))
+        full_parse("a|b | c"),
+        Choice(vec![
+            Literal("a".into()),
+            Literal("b".into()),
+            Literal("c".into())
+        ])
     )
 }
 
 #[test]
 fn instantiation() {
-    assert_eq!(
-        bnf_rule_def("<rule>"),
-        Ok(("", BnfPart::Rule("rule".to_string())))
-    )
+    assert_eq!(full_parse("<rule>"), Rule("rule".into()))
 }
 
 #[test]
 fn repetition() {
     assert_eq!(
-        bnf_rule_def("{<rule>}"),
-        Ok((
-            "",
-            BnfPart::Repeat(Box::new(BnfPart::Rule("rule".to_string())))
-        ))
+        full_parse("{<rule>}"),
+        Repeat(Box::new(Rule("rule".into())))
     )
-}
-
-#[test]
-fn known_timeouts() {
-    let test_this = |bnf: &str| {
-        let bnf2 = bnf.to_string();
-        timeout_test(0.1, bnf, move || {
-            bnf_rule_def(&bnf2);
-        })
-    };
-    test_this("[({([(<c>)])})]");
-    test_this("((((((((((a))))))))))");
-    test_this("[([([([(<a>)])])])]");
 }
 
 #[test]
@@ -169,7 +90,7 @@ fn generative() {
     let mut elems = atoms.clone();
     let mut rng = rand::thread_rng();
 
-    for _ in 0..100 {
+    for _ in 0..1000 {
         let combs = 2 + rng.gen::<usize>() % 4;
         let mut vec = Vec::new();
         for _ in 0..combs {
@@ -183,11 +104,11 @@ fn generative() {
         {
             let product = product.clone();
             timeout_test(0.1, &product.0.clone(), move || {
-                assert_eq!(bnf_rule_def(&product.0), Ok(("", product.1.clone())));
+                assert_eq!(full_parse(&product.0), product.1.clone());
             });
         }
 
-        if product.0.len() < 15 {
+        if product.0.len() < 100 {
             elems.push(product);
         }
     }
@@ -210,9 +131,7 @@ fn timeout_test(
         tx.send(()).unwrap();
     });
 
-    sleep(Duration::from_secs_f64(timeout));
-
-    match rx.try_recv() {
+    match rx.recv_timeout(Duration::from_secs_f64(timeout)) {
         Ok(_) => handle.join().unwrap(),
         Err(_) => panic!("Experienced timeout: {}", timeout_msg),
     };

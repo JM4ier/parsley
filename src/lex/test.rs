@@ -4,7 +4,10 @@ use super::*;
 fn lex_a() {
     use Token::*;
     assert_eq!(
-        lex("<peter\\ >   : mueller[asdf]\\a\\}"),
+        lex("<peter\\ >   : mueller[asdf]\\a\\}")
+            .into_iter()
+            .map(|(_, t)| t)
+            .collect::<Vec<_>>(),
         vec![
             RuleOpen,
             String("peter ".into()),
