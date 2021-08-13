@@ -9,6 +9,7 @@ pub enum Definition {
 
 pub type Rule = Vec<Definition>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Grammar {
     pub start: usize,
     pub null: bool,
