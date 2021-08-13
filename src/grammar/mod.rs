@@ -1,7 +1,10 @@
 pub type NonTerminal = usize;
 pub type Terminal = String;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg(test)]
+mod test;
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Token {
     NT(NonTerminal),
     T(Terminal),
@@ -27,7 +30,7 @@ impl Token {
 pub type Definition = Vec<Token>;
 pub type Rule = Vec<Definition>;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Grammar {
     pub start: usize,
     pub rules: Vec<Rule>,
@@ -86,6 +89,7 @@ impl Grammar {
                         snek = self.add_rule(vec![vec![x, Token::NT(snek)]]);
                     }
                     self.rules[r][d][1] = Token::NT(snek);
+                    self.rules[r][d].resize(2, Token::T(String::new()));
                 }
             }
         }
@@ -171,14 +175,19 @@ impl Grammar {
     fn n_unit(&mut self) {
         for r in 0..self.rules.len() {
             let mut i = 0;
+            let mut removal = Vec::new();
             while i < self.rules[r].len() {
                 if self.rules[r][i].len() == 1 {
                     if let Token::NT(nt) = self.rules[r][i][0] {
                         let mut new_rules = self.rules[nt].clone();
                         self.rules[r].append(&mut new_rules);
+                        removal.push(i);
                     }
                 }
                 i += 1;
+            }
+            for i in removal.into_iter().rev() {
+                self.rules[r].remove(i);
             }
         }
     }
@@ -235,7 +244,7 @@ impl Grammar {
             *rule = rule
                 .iter()
                 .cloned()
-                .filter(|def| *def == vec![Token::NT(rule_idx)])
+                .filter(|def| *def != vec![Token::NT(rule_idx)])
                 .collect();
         }
     }
@@ -266,7 +275,7 @@ impl Grammar {
     fn remove_empty_strings(&mut self) {
         for rule in self.rules.iter_mut() {
             for def in rule.iter_mut() {
-                *def = def.clone().into_iter().filter(|t| t.is_empty()).collect();
+                *def = def.clone().into_iter().filter(|t| !t.is_empty()).collect();
             }
         }
     }
