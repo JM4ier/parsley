@@ -55,6 +55,7 @@ impl Grammar {
         self.n_term();
         self.n_bin();
         self.n_del();
+        self.remove_cycles();
         self.n_unit();
         self.simplify();
     }

@@ -10,3 +10,4 @@ edition = "2018"
 rand = "0.8.3"
 
 [dependencies]
+rustop = "1.1"
