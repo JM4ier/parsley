@@ -1,21 +1,6 @@
 mod test;
 
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Location {
-    pub line: usize,
-    pub from: usize,
-    pub to: usize,
-}
-
-impl Location {
-    pub fn new(line: usize, chr: usize) -> Self {
-        Self {
-            line,
-            from: chr,
-            to: chr,
-        }
-    }
-}
+pub type Location = std::ops::RangeInclusive<usize>;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Token {
@@ -35,13 +20,12 @@ pub enum Token {
 
 pub fn lex(i: &str) -> Vec<(Location, Token)> {
     let mut tokens = Vec::new();
-    let mut chars = i.chars();
+    let mut chars = i.chars().enumerate();
     let mut acc = String::new();
+    let mut acc_begin = 0;
+    let mut acc_end = 0;
 
-    let mut line = 1;
-    let mut chr = 0;
-
-    while let Some(ch) = chars.next() {
+    while let Some((loc, ch)) = chars.next() {
         use Token::*;
         let t = match ch {
             '<' => RuleOpen,
@@ -56,25 +40,28 @@ pub fn lex(i: &str) -> Vec<(Location, Token)> {
             ':' => Assign,
             '\n' => Newline,
             '\\' => {
-                if let Some(ch) = chars.next() {
+                if let Some((end, ch)) = chars.next() {
                     acc.push(ch);
+                    acc_end = end;
                 }
                 continue;
             }
             ' ' | '\t' => continue,
             a => {
                 acc.push(a);
+                acc_end = loc;
                 continue;
             }
         };
+        acc_begin = loc + 1;
         if acc.len() > 0 {
-            tokens.push((Location::new(line, chr), Token::String(acc)));
+            tokens.push((acc_begin..=acc_end, Token::String(acc)));
             acc = Default::default();
         }
-        tokens.push((Location::new(line, chr), t));
+        tokens.push((loc..=loc, t));
     }
     if acc.len() > 0 {
-        tokens.push((Location::new(line, chr), Token::String(acc)));
+        tokens.push((acc_begin..=acc_end, Token::String(acc)));
     }
     tokens
 }
