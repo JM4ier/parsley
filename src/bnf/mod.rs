@@ -29,36 +29,65 @@ impl BnfPart {
     pub fn simplify(&mut self) {}
 }
 
-pub fn to_grammar(rules: &[BnfRule]) -> Grammar {
-    let mut grammar = Grammar::new();
-    // rule name to nonterminal
-    let mut rtn = HashMap::new();
-    let mut defs = Vec::new();
-
-    for rule in rules.iter() {
-        if !rtn.contains_key(&rule.name) {
-            let nt = grammar.add_rule(vec![]);
-            rtn.insert(&rule.name, nt);
-        }
-        defs.push(rule.def.clone());
-    }
-
-    fn visit_part<'a>(part: &'a BnfPart, rtn: &mut HashMap<&'a String, NonTerminal>, g: &mut Grammar) {
+pub fn to_grammar(rules: &[BnfRule], root: &str) -> Grammar {
+    fn convert<'a>(part: &'a BnfPart, lookup: &mut HashMap<&'a String, NonTerminal>, g: &mut Grammar) -> NonTerminal {
         use BnfPart::*;
+        use Token::*;
         match part {
             Rule(s) => {
-                if !rtn.contains_key(s) {
+                if !lookup.contains_key(s) {
                     let nt = g.add_rule(vec![]);
-                    rtn.insert(s, nt);
+                    lookup.insert(s, nt);
+                    nt
+                } else {
+                    lookup[s]
                 }
             }
-            Choice(parts) => parts.iter().for_each(|p| visit_part(p, rtn, g)),
-            Concat(parts) => parts.iter().for_each(|p| visit_part(p, rtn, g)),
-            Repeat(part) => visit_part(part, rtn, g),
-            _ => (),
+            Choice(parts) => {
+                let parts = parts.iter().map(|p| vec![NT(convert(p, lookup, g))]).collect::<Vec<_>>();
+                g.add_rule(parts)
+            }
+            Concat(parts) => {
+                let parts = parts.iter().map(|p| NT(convert(p, lookup, g))).collect::<Vec<_>>();
+                g.add_rule(vec![parts])
+            }
+            Repeat(part) => {
+                let part = convert(part, lookup, g);
+                let rule = g.add_rule(vec![]);
+                g.rules[rule].push(vec![]);
+                g.rules[rule].push(vec![NT(rule), NT(rule)]);
+                g.rules[rule].push(vec![NT(part)]);
+                rule
+            }
+            Literal(lit) => {
+                g.add_rule(vec![vec![T(lit.clone())]])
+            }
+            Empty => {
+                g.add_rule(vec![vec![]])
+            }
         }
     }
-    visit_part(&BnfPart::Concat(defs), &mut rtn, &mut grammar);
 
-    todo!() 
+    let mut grammar = Grammar::new();
+    // rule name to nonterminal
+    let mut lookup = HashMap::new();
+
+    for rule in rules.iter() {
+        let nt = convert(&rule.def, &mut lookup, &mut grammar);
+        if let Some(&def) = lookup.get(&rule.name) {
+            grammar.rules[def].push(vec![Token::NT(nt)]);
+        } else {
+            lookup.insert(&rule.name, nt);
+        }
+    }
+
+    let root = root.to_string();
+
+    if let Some(&root) = lookup.get(&root) {
+        grammar.start = root;
+    } else {
+        grammar.start = grammar.add_rule(vec![]);
+    }
+
+    grammar
 }
