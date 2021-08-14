@@ -1,3 +1,4 @@
+#[cfg(test)]
 mod test;
 
 pub type Location = std::ops::RangeInclusive<usize>;
@@ -16,6 +17,26 @@ pub enum Token {
     Alternative,
     Assign,
     Newline,
+}
+
+impl ToString for Token {
+    fn to_string(&self) -> String {
+        let s = match self {
+            Self::String(s) => &s,
+            Self::RuleOpen => "<",
+            Self::RuleClose => ">",
+            Self::GroupOpen => "(",
+            Self::GroupClose => ")",
+            Self::OptOpen => "[",
+            Self::OptClose => "]",
+            Self::RepOpen => "{",
+            Self::RepClose => "}",
+            Self::Alternative => "|",
+            Self::Assign => ":",
+            Self::Newline => "\\n",
+        };
+        s.to_string()
+    }
 }
 
 pub fn lex(i: &str) -> Vec<(Location, Token)> {
