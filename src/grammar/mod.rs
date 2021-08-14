@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 pub type NonTerminal = usize;
 pub type Terminal = String;
 
@@ -8,6 +10,15 @@ mod test;
 pub enum Token {
     NT(NonTerminal),
     T(Terminal),
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::NT(nt) => write!(f, "{}", nt),
+            Self::T(t) => write!(f, "{:?}", t),
+        }
+    }
 }
 
 impl Token {
@@ -36,6 +47,38 @@ pub struct Grammar {
     pub rules: Vec<Rule>,
 }
 
+impl Display for Grammar {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "Start: {}\n", self.start);
+        for (idx, rule) in self.rules.iter().enumerate() {
+            write!(f, "{:>3 } -> ", idx);
+            let mut first = true;
+            for def in rule.iter() {
+                if !first {
+                    write!(f, " | ");
+                }
+                first = false;
+                let mut first_token = true;
+                for token in def.iter() {
+                    if !first_token {
+                        write!(f, " ");
+                    }
+                    first_token = false;
+                    write!(f, "{}", token);
+                }
+                if first_token {
+                    write!(f, "\"\"");
+                }
+            }
+            if first {
+                write!(f, "undefined");
+            }
+            write!(f, "\n");
+        }
+        Ok(())
+    }
+}
+
 impl Grammar {
     pub fn new() -> Self {
         Default::default()
@@ -59,13 +102,20 @@ impl Grammar {
         self.n_unit();
         self.simplify();
     }
+
+    /// adds new starting point to avoid any rule producing the starting nonterminal
     fn n_start(&mut self) {
         let new_start = vec![vec![Token::NT(self.start)]];
         self.start = self.add_rule(new_start)
     }
+
+    /// puts every terminal into its own definition
     fn n_term(&mut self) {
         for r in 0..self.rules.len() {
             for d in 0..self.rules[r].len() {
+                if self.rules[r][d].len() < 2 {
+                    continue;
+                }
                 for t in 0..self.rules[r][d].len() {
                     if let Token::T(term) = &self.rules[r][d][t] {
                         let term = term.clone();
@@ -77,6 +127,8 @@ impl Grammar {
             }
         }
     }
+
+    /// breaks up any definition that contains more than two tokens
     fn n_bin(&mut self) {
         for r in 0..self.rules.len() {
             for d in 0..self.rules[r].len() {
@@ -99,29 +151,40 @@ impl Grammar {
         }
     }
 
+    /// eliminates all null productions from any nonterminal except the start
     fn n_del(&mut self) {
+        // stores whether a nonterminal can produce the empty string
         let mut nullable = vec![false; self.rules.len()];
+
+        // look up of which nonterminals depend on the i-th nonterminal
         let mut rev = vec![Vec::new(); self.rules.len()];
 
         for (idx, rule) in self.rules.iter().enumerate() {
             for tok in rule.iter().flatten() {
-                match tok {
-                    Token::NT(nt) => rev[*nt].push(idx),
-                    _ => (),
+                if let Token::NT(nt) = tok {
+                    rev[*nt].push(idx);
                 }
             }
         }
 
+        // remove duplicates
         for r in rev.iter_mut() {
             r.sort();
             r.dedup();
         }
 
+        // first mark trivially nullable nonterminals as nullable
         let mut q = Vec::new();
         for (idx, rule) in self.rules.iter().enumerate() {
             if rule.contains(&Vec::new()) {
+                // there is at least one definition containing no tokens, i.e. that definition
+                // produces the empty string
                 nullable[idx] = true;
-                q.push(idx);
+
+                // mark all depending nonterminals for further inspection
+                for dep in rev[idx].iter() {
+                    q.push(*dep);
+                }
             }
         }
 
@@ -129,25 +192,29 @@ impl Grammar {
             if nullable[idx] {
                 continue;
             }
-            for def in self.rules[idx].iter() {
-                if def.iter().all(|t| match t {
+            // if all tokens in one definition are nullable, then this nonterminal is also nullable
+            let null = self.rules[idx].iter().any(|def| {
+                def.iter().all(|t| match t {
                     Token::NT(nt) => nullable[*nt],
                     _ => false,
-                }) {
-                    nullable[idx] = true;
-                    for &next in rev[idx].iter() {
-                        if !nullable[next] {
-                            q.push(next)
-                        }
+                })
+            });
+            if null {
+                nullable[idx] = true;
+                for &next in rev[idx].iter() {
+                    if !nullable[next] {
+                        q.push(next)
                     }
-                    break;
                 }
             }
         }
 
+        // after finding all nullable nonterminals, eliminate null productions everywhere except
+        // the start
         for (idx, rule) in self.rules.iter_mut().enumerate() {
             let mut new_defs = Vec::new();
             for def in rule.iter() {
+                // indices of nullable nonterminals in the definition
                 let mut nulls = Vec::new();
                 for (i, token) in def.iter().enumerate() {
                     if let Token::NT(nt) = token {
@@ -156,6 +223,9 @@ impl Grammar {
                         }
                     }
                 }
+
+                // find all possible combinations of leaving out nullable nonterminals and add as
+                // new definitions
                 for k in 0..((1 << nulls.len()) - 1) {
                     let mut def = def.clone();
                     for i in (0..nulls.len()).rev() {
@@ -167,15 +237,19 @@ impl Grammar {
                 }
             }
 
+            // add new rule combinations to the actual rule and remove duplicates
             rule.append(&mut new_defs);
             rule.sort();
             rule.dedup();
 
+            // remove null productions unless it is the starting rule
             if idx != self.start {
                 rule.retain(|def| def.len() > 0);
             }
         }
     }
+
+    /// eliminates all unit productions of the form `A -> B` by adding the definitions of `B` to `A`
     fn n_unit(&mut self) {
         for r in 0..self.rules.len() {
             let mut i = 0;

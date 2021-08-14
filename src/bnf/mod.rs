@@ -30,7 +30,11 @@ impl BnfPart {
 }
 
 pub fn to_grammar(rules: &[BnfRule], root: &str) -> Grammar {
-    fn convert<'a>(part: &'a BnfPart, lookup: &mut HashMap<&'a String, NonTerminal>, g: &mut Grammar) -> NonTerminal {
+    fn convert<'a>(
+        part: &'a BnfPart,
+        lookup: &mut HashMap<&'a String, NonTerminal>,
+        g: &mut Grammar,
+    ) -> NonTerminal {
         use BnfPart::*;
         use Token::*;
         match part {
@@ -44,11 +48,17 @@ pub fn to_grammar(rules: &[BnfRule], root: &str) -> Grammar {
                 }
             }
             Choice(parts) => {
-                let parts = parts.iter().map(|p| vec![NT(convert(p, lookup, g))]).collect::<Vec<_>>();
+                let parts = parts
+                    .iter()
+                    .map(|p| vec![NT(convert(p, lookup, g))])
+                    .collect::<Vec<_>>();
                 g.add_rule(parts)
             }
             Concat(parts) => {
-                let parts = parts.iter().map(|p| NT(convert(p, lookup, g))).collect::<Vec<_>>();
+                let parts = parts
+                    .iter()
+                    .map(|p| NT(convert(p, lookup, g)))
+                    .collect::<Vec<_>>();
                 g.add_rule(vec![parts])
             }
             Repeat(part) => {
@@ -59,12 +69,8 @@ pub fn to_grammar(rules: &[BnfRule], root: &str) -> Grammar {
                 g.rules[rule].push(vec![NT(part)]);
                 rule
             }
-            Literal(lit) => {
-                g.add_rule(vec![vec![T(lit.clone())]])
-            }
-            Empty => {
-                g.add_rule(vec![vec![]])
-            }
+            Literal(lit) => g.add_rule(vec![vec![T(lit.clone())]]),
+            Empty => g.add_rule(vec![vec![]]),
         }
     }
 
