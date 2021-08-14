@@ -30,13 +30,16 @@ impl Token {
 pub type Definition = Vec<Token>;
 pub type Rule = Vec<Definition>;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 pub struct Grammar {
     pub start: usize,
     pub rules: Vec<Rule>,
 }
 
 impl Grammar {
+    pub fn new() -> Self {
+        Default::default()
+    }
     pub fn add_rule(&mut self, rule: Rule) -> NonTerminal {
         self.rules.push(rule);
         self.rules.len() - 1
