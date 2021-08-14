@@ -49,31 +49,31 @@ pub struct Grammar {
 
 impl Display for Grammar {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "Start: {}\n", self.start);
+        write!(f, "Start: {}\n", self.start)?;
         for (idx, rule) in self.rules.iter().enumerate() {
-            write!(f, "{:>3 } -> ", idx);
+            write!(f, "{:>3 } -> ", idx)?;
             let mut first = true;
             for def in rule.iter() {
                 if !first {
-                    write!(f, " | ");
+                    write!(f, " | ")?;
                 }
                 first = false;
                 let mut first_token = true;
                 for token in def.iter() {
                     if !first_token {
-                        write!(f, " ");
+                        write!(f, " ")?;
                     }
                     first_token = false;
-                    write!(f, "{}", token);
+                    write!(f, "{}", token)?;
                 }
                 if first_token {
-                    write!(f, "\"\"");
+                    write!(f, "\"\"")?;
                 }
             }
             if first {
-                write!(f, "undefined");
+                write!(f, "undefined")?;
             }
-            write!(f, "\n");
+            write!(f, "\n")?;
         }
         Ok(())
     }
