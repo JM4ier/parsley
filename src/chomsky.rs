@@ -3,20 +3,29 @@ pub use grammar::{NonTerminal, Terminal};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Definition {
+    /// Terminal, i.e. a sequence of characters
     Term(Terminal),
+    /// Two Nonterminals
     Product([NonTerminal; 2]),
 }
 
 pub type Rule = Vec<Definition>;
 
+/// A Grammar in the Chomsky Normal Form
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Grammar {
-    pub start: usize,
+    /// starting symbol
+    pub start: NonTerminal,
+    /// whether this grammar can produce the empty string
     pub null: bool,
+    /// a set of transformation rules
     pub rules: Vec<Rule>,
 }
 
 impl Grammar {
+    /// returns `Ok(grammar)` if the given argument is in normal form
+    ///
+    /// otherwise it returns `Err(string)` with a normal form violation
     pub fn from_normalized(grammar: &grammar::Grammar) -> Result<Self, String> {
         use grammar::Token;
 
@@ -64,6 +73,9 @@ impl Grammar {
         })
     }
 
+    /// Checks if a word is accepted by this grammar
+    ///
+    /// It uses the simple [CYK algorithm](https://en.wikipedia.org/wiki/CYK_algorithm)
     pub fn accepts(&self, word: &str) -> bool {
         let chars = word.chars().collect::<Vec<_>>();
         #[allow(non_snake_case)]
@@ -92,8 +104,7 @@ impl Grammar {
                     for (r, rule) in self.rules.iter().enumerate() {
                         for def in rule.iter() {
                             if let Definition::Product([c1, c2]) = *def {
-                                p[r][start][start + len] |= //a
-                                    p[c1][start][start + pivot]//a
+                                p[r][start][start + len] |= p[c1][start][start + pivot]
                                     && p[c2][start + pivot][start + len];
                             }
                         }
