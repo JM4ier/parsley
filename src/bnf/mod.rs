@@ -69,7 +69,7 @@ pub fn to_grammar(rules: &[BnfRule], root: &str) -> Grammar {
                 g.rules[rule].push(vec![NT(part)]);
                 rule
             }
-            Literal(lit) => g.add_rule(vec![vec![T(lit.clone())]]),
+            Literal(lit) => g.add_rule(vec![vec![T(lit.chars().collect())]]),
             Empty => g.add_rule(vec![vec![]]),
         }
     }

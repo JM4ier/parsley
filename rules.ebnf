@@ -1,4 +1,1 @@
-<greet> : <hello> <space> <world>
-<hello> : hello
-<space> : \ 
-<world> : world
+<scream> : {a|A}

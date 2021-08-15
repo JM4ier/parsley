@@ -1,7 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 
 pub type NonTerminal = usize;
-pub type Terminal = String;
+pub type Terminal = Vec<char>;
 
 #[cfg(test)]
 mod test;
@@ -145,7 +145,7 @@ impl Grammar {
                         snek = self.add_rule(vec![vec![x, Token::NT(snek)]]);
                     }
                     self.rules[r][d][1] = Token::NT(snek);
-                    self.rules[r][d].resize(2, Token::T(String::new()));
+                    self.rules[r][d].resize(2, Token::T(Default::default()));
                 }
             }
         }
@@ -330,16 +330,16 @@ impl Grammar {
     fn concatenate_strings(&mut self) {
         for rule in self.rules.iter_mut() {
             for def in rule.iter_mut() {
-                let mut acc = String::new();
+                let mut acc = Vec::default();
                 let mut new_def = Vec::new();
                 for tok in def.iter() {
                     match tok {
                         Token::T(term) => {
-                            acc += &term;
+                            acc.append(&mut term.clone());
                         }
                         nt => {
                             new_def.push(Token::T(acc));
-                            acc = String::new();
+                            acc = Default::default();
                             new_def.push(nt.clone())
                         }
                     }

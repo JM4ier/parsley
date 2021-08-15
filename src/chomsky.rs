@@ -63,4 +63,45 @@ impl Grammar {
             start: grammar.start,
         })
     }
+
+    pub fn accepts(&self, word: &str) -> bool {
+        let chars = word.chars().collect::<Vec<_>>();
+        #[allow(non_snake_case)]
+        let N = chars.len();
+
+        if N == 0 && self.null {
+            return true;
+        }
+
+        let mut p = vec![vec![vec![false; N + 1]; N]; self.rules.len()];
+
+        for (r, rule) in self.rules.iter().enumerate() {
+            for def in rule.iter() {
+                if let Definition::Term(term) = def {
+                    for start in 0..(N - term.len() + 1) {
+                        p[r][start][start + term.len()] |=
+                            chars[start..start + term.len()] == term[..];
+                    }
+                }
+            }
+        }
+
+        for len in 2..=N {
+            for start in 0..N - len + 1 {
+                for pivot in 0..len {
+                    for (r, rule) in self.rules.iter().enumerate() {
+                        for def in rule.iter() {
+                            if let Definition::Product([c1, c2]) = *def {
+                                p[r][start][start + len] |= //a
+                                    p[c1][start][start + pivot]//a
+                                    && p[c2][start + pivot][start + len];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        p[self.start][0][N]
+    }
 }

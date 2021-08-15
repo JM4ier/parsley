@@ -11,6 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (args, _) = opts! {
         synopsis "This parses EBNF";
         param file: String, desc: "Input file name.";
+        param check: Option<String>, desc: "check string against rule";
     }
     .parse_or_exit();
 
@@ -29,6 +30,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", grammar);
     let cgrammar = chomsky::Grammar::from_normalized(&grammar)?;
     println!("{:?}", cgrammar);
+
+    if let Some(check) = args.check {
+        let verdict = if cgrammar.accepts(&check) {
+            "accepted"
+        } else {
+            "rejected"
+        };
+        println!("`{}` is {} by these rules.", check, verdict);
+    }
 
     Ok(())
 }
