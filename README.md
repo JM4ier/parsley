@@ -8,3 +8,8 @@ WIP
 ```
 cargo run -- rule-file.txt 'word to check for here'
 ```
+
+### Example
+```
+cargo run -- rules/scream 'aAaaaAAAaAAaAaa'
+```
