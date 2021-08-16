@@ -3,6 +3,7 @@ pub mod chomsky;
 pub mod grammar;
 pub mod lex;
 pub mod parse;
+pub mod producer;
 
 use rustop::opts;
 use std::io::prelude::*;
@@ -23,13 +24,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rules = parse::parse(&tokens)?;
     println!("{:?}", rules);
     let mut grammar = bnf::to_grammar(&rules, &rules[0].name);
-    println!("{}", grammar);
     grammar.simplify();
-    println!("{}", grammar);
     grammar.normalize();
     println!("{}", grammar);
     let cgrammar = chomsky::Grammar::from_normalized(&grammar)?;
-    println!("{:?}", cgrammar);
 
     if let Some(check) = args.check {
         let verdict = if cgrammar.accepts(&check) {
@@ -39,6 +37,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         println!("`{}` is {} by these rules.", check, verdict);
     }
+
+    println!("\nwords accepted by this grammar:");
+    let words = producer::Producer::new(cgrammar)
+        .map(|w| w.into_iter().collect::<String>())
+        .take(10)
+        .collect::<Vec<_>>();
+    println!("{:?}", words);
 
     Ok(())
 }
