@@ -12,7 +12,6 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "EBNF")]
 struct Options {
     #[structopt(short, long)]
     debug: bool,
@@ -74,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 "rejected"
             };
-            println!("`{}` is {} by these rules.", word, verdict);
+            println!("`{}` is {} by this grammar.", word, verdict);
         }
         CheckFile { file } => {
             let mut file = File::open(file)?;

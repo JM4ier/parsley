@@ -1,6 +1,6 @@
 [package]
-name = "bnf-to-cnf"
-version = "0.1.0"
+name = "parsley"
+version = "0.2.0"
 authors = ["Jonas Maier <1.jmaier.3@gmail.com>"]
 edition = "2018"
 
