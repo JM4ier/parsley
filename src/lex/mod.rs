@@ -84,11 +84,11 @@ pub fn lex(i: &str) -> Vec<(Location, Token)> {
                 continue;
             }
         };
-        acc_begin = loc + 1;
         if acc.len() > 0 {
             tokens.push((acc_begin..=acc_end, Token::String(acc)));
             acc = Default::default();
         }
+        acc_begin = loc + 1;
         tokens.push((loc..=loc, t));
     }
     if acc.len() > 0 {

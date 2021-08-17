@@ -1,13 +1,20 @@
 use super::*;
 
+fn term(s: &str) -> Token {
+    Token::T(String::from(s).chars().collect())
+}
+fn cterm(s: &str) -> crate::chomsky::Definition {
+    crate::chomsky::Definition::Term(String::from(s).chars().collect())
+}
+
 #[test]
 fn sanity_check() {
     let mut g = Grammar {
         start: 0,
-        rules: vec![vec![vec![Token::T("foo".into())]]],
+        rules: vec![vec![vec![term("foo")]]],
     };
     g.simplify();
-    assert_eq!(g.rules, vec![vec![vec![Token::T("foo".into())]]]);
+    assert_eq!(g.rules, vec![vec![vec![term("foo")]]]);
 }
 
 #[test]
@@ -17,7 +24,7 @@ fn remove_duplicate_definitions() {
         rules: Vec::new(),
     };
 
-    let def1 = vec![vec![Token::T("hello".into())]];
+    let def1 = vec![vec![term("hello")]];
 
     let mut def4 = def1.clone();
     def4.extend_from_within(..);
@@ -35,23 +42,19 @@ fn remove_duplicate_definitions() {
 fn concat_strings() {
     let mut g = Grammar {
         start: 0,
-        rules: vec![vec![vec![
-            Token::T("hello".into()),
-            Token::T(" ".into()),
-            Token::T("world".into()),
-        ]]],
+        rules: vec![vec![vec![term("hello"), term(" "), term("world")]]],
     };
     g.simplify();
 
-    assert_eq!(g.rules, vec![vec![vec![Token::T("hello world".into())]]]);
+    assert_eq!(g.rules, vec![vec![vec![term("hello world")]]]);
 }
 
 #[test]
 fn normalize_sequence() {
     let r1 = vec![vec![Token::NT(1), Token::NT(2), Token::NT(3)]];
-    let r2 = vec![vec![Token::T("a".into())]];
-    let r3 = vec![vec![Token::T("b".into())]];
-    let r4 = vec![vec![Token::T("c".into())]];
+    let r2 = vec![vec![term("a")]];
+    let r3 = vec![vec![term("b")]];
+    let r4 = vec![vec![term("c")]];
 
     let mut g = Grammar {
         start: 0,
@@ -72,10 +75,10 @@ fn normalize_sequence() {
 
 #[test]
 fn normalize_optional() {
-    use crate::chomsky::{Definition as CDef, Grammar as CGram};
+    use crate::chomsky::Grammar as CGram;
     let mut g = Grammar {
         start: 0,
-        rules: vec![vec![vec![], vec![Token::T(String::from("hello"))]]],
+        rules: vec![vec![vec![], vec![term("hello")]]],
     };
     g.normalize();
     assert_eq!(
@@ -83,12 +86,12 @@ fn normalize_optional() {
         Ok(CGram {
             start: 0,
             null: true,
-            rules: vec![vec![CDef::Term(String::from("hello"))]]
+            rules: vec![vec![cterm("hello")]]
         })
     );
     let mut g = Grammar {
         start: 0,
-        rules: vec![vec![vec![Token::T(String::from("hello"))]]],
+        rules: vec![vec![vec![term("hello")]]],
     };
     g.normalize();
     assert_eq!(
@@ -96,21 +99,17 @@ fn normalize_optional() {
         Ok(CGram {
             start: 0,
             null: false,
-            rules: vec![vec![CDef::Term(String::from("hello"))]]
+            rules: vec![vec![cterm("hello")]]
         })
     );
 }
 
 #[test]
 fn normalize_optional_alternative() {
-    use crate::chomsky::{Definition as CDef, Grammar as CGram};
+    use crate::chomsky::Grammar as CGram;
     let mut g = Grammar {
         start: 0,
-        rules: vec![vec![
-            vec![],
-            vec![Token::T(String::from("hello"))],
-            vec![Token::T(String::from("world"))],
-        ]],
+        rules: vec![vec![vec![], vec![term("hello")], vec![term("world")]]],
     };
     g.normalize();
     assert_eq!(
@@ -118,10 +117,7 @@ fn normalize_optional_alternative() {
         Ok(CGram {
             start: 0,
             null: true,
-            rules: vec![vec![
-                CDef::Term(String::from("hello")),
-                CDef::Term(String::from("world"))
-            ]]
+            rules: vec![vec![cterm("hello"), cterm("world"),]]
         })
     )
 }

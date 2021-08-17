@@ -4,7 +4,7 @@ use BnfPart::*;
 
 fn full_parse(bnf: &str) -> BnfPart {
     use crate::lex::*;
-    let tokens = lex(bnf).into_iter().map(|(_, t)| t).collect::<Vec<_>>();
+    let tokens = lex(bnf);
     let mut tokens: &[_] = &tokens;
     rparse(&mut tokens, None).unwrap()
 }
@@ -135,4 +135,67 @@ fn timeout_test(
         Ok(_) => handle.join().unwrap(),
         Err(_) => panic!("Experienced timeout: {}", timeout_msg),
     };
+}
+
+/// tests for crashes in the parser by testing random inputs
+#[test]
+fn fuzzing() {
+    use crate::lex::Token::*;
+    use rand::prelude::*;
+
+    let tokens = vec![
+        String("x".into()),
+        String("y".into()),
+        String("z".into()),
+        RuleOpen,
+        RuleClose,
+        GroupOpen,
+        GroupClose,
+        OptOpen,
+        OptClose,
+        RepOpen,
+        RepClose,
+        Alternative,
+        Assign,
+        Newline,
+    ];
+
+    let begin = vec![RuleOpen, String("rule".into()), RuleClose, Assign];
+    let empty = vec![];
+
+    let mut rng = rand::thread_rng();
+    let max_len = 100;
+    let mut _correct = 0;
+    let reps = 100_000;
+
+    for i in 0..reps {
+        let start = if i % 2 == 0 { &begin } else { &empty };
+        let mut input = start.clone();
+        for _ in 0..(rng.gen::<usize>() % max_len) {
+            input.push(tokens[rng.gen::<usize>() % tokens.len()].clone());
+        }
+        let input = input
+            .into_iter()
+            .enumerate()
+            .map(|(i, t)| (i..=i, t))
+            .collect::<Vec<_>>();
+
+        let dummy_source = Some('*')
+            .iter()
+            .cycle()
+            .take(input.len())
+            .collect::<std::string::String>();
+
+        let mut input: &[_] = &input;
+        let parsed = parse(&mut input);
+        match parsed {
+            Ok(_) => {
+                _correct += 1;
+            }
+            Err(errs) => {
+                format_errors("fuzz.txt", &dummy_source, errs);
+            }
+        }
+    }
+    println!("{}/{} successful parses", _correct, reps);
 }
