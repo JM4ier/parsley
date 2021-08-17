@@ -3,6 +3,7 @@ pub mod chomsky;
 pub mod compare;
 pub mod grammar;
 pub mod lex;
+pub mod log;
 pub mod parse;
 pub mod producer;
 
@@ -40,7 +41,7 @@ enum Command {
     },
 }
 
-fn parse(file: &PathBuf, debug: bool) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
+fn parse(file: &PathBuf) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
     let path = file
         .clone()
         .into_os_string()
@@ -60,22 +61,20 @@ fn parse(file: &PathBuf, debug: bool) -> Result<chomsky::Grammar, Box<dyn std::e
             std::process::exit(1);
         }
     };
-    if debug {
-        println!("{:?}", rules);
-    }
+    debugln!("{:?}", rules);
     let mut grammar = bnf::to_grammar(&rules, &rules[0].name);
     grammar.simplify();
     grammar.normalize();
-    if debug {
-        println!("{}", grammar);
-    }
+    debugln!("{}", grammar);
     Ok(chomsky::Grammar::from_normalized(&grammar)?)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Options::from_args();
 
-    let grammar = parse(&args.file, args.debug)?;
+    log::enable(args.debug);
+
+    let grammar = parse(&args.file)?;
 
     use Command::*;
     match args.cmd {
@@ -100,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         CompareTo { other_file, limit } => {
-            let other_grammar = parse(&other_file, args.debug)?;
+            let other_grammar = parse(&other_file)?;
             let compare = compare::Comparison::from_grammars(grammar, other_grammar, limit);
             let mapped = |words: &[chomsky::Terminal]| {
                 words

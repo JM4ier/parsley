@@ -300,9 +300,11 @@ impl Grammar {
                     Token::T(_) => true,
                     Token::NT(nt) => is_possible(rules, visited, *nt),
                 }) {
+                    visited[nt] = false;
                     return true;
                 }
             }
+            visited[nt] = false;
             false
         }
 

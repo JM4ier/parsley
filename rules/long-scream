@@ -1,2 +1,2 @@
-<long-scream> : (a|A)<scream>
-<scream> : {a|A}
+<long-scream> : <a><a><a>{<a>}
+<a> : a|A

@@ -71,6 +71,17 @@ impl Producer {
 
         self.next = 0;
     }
+
+    /// returns all currently produced words, even if they haven't been read by the iterator yet
+    pub fn all_buffered_words(&self) -> Vec<Terminal> {
+        self.words
+            .iter()
+            .map(|w| &w[self.grammar.start])
+            .flatten()
+            .cloned()
+            .collect()
+    }
+
     /// length of the current longest found word
     fn current_longest(&self) -> usize {
         for (len, words) in self.words.iter().enumerate().rev() {
@@ -78,7 +89,7 @@ impl Producer {
                 return len;
             }
         }
-        0
+        1_000_000
     }
     /// whether it's possible that there are more words still
     fn finished(&self) -> bool {
