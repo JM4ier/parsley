@@ -41,12 +41,24 @@ enum Command {
 }
 
 fn parse(file: &PathBuf, debug: bool) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
+    let path = file
+        .clone()
+        .into_os_string()
+        .into_string()
+        .unwrap_or("<unknown file>".into());
     let mut file = std::fs::File::open(file)?;
     let mut ebnf = String::new();
     file.read_to_string(&mut ebnf)?;
 
     let tokens = lex::lex(&ebnf);
-    let rules = parse::parse(&tokens)?;
+    let rules = match parse::parse(&tokens) {
+        Ok(rules) => rules,
+        Err(errs) => {
+            println!("{}", parse::format_errors(&path, &ebnf, errs.clone()));
+            println!("Error: aborting due to previous errors");
+            std::process::exit(1);
+        }
+    };
     if debug {
         println!("{:?}", rules);
     }

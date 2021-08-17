@@ -39,6 +39,16 @@ impl ToString for Token {
     }
 }
 
+impl Token {
+    pub fn to_expected(&self) -> String {
+        if let Self::String(_) = self {
+            String::from("a literal")
+        } else {
+            format!("`{}`", self.to_string())
+        }
+    }
+}
+
 pub fn lex(i: &str) -> Vec<(Location, Token)> {
     let mut tokens = Vec::new();
     let mut chars = i.chars().enumerate();

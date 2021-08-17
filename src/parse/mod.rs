@@ -38,6 +38,35 @@ pub struct ParseError {
     got: Option<Token>,
     location: Option<Location>,
 }
+impl ParseError {
+    pub fn message(&self) -> String {
+        let exp = self
+            .expected
+            .iter()
+            .map(Token::to_expected)
+            .collect::<Vec<_>>();
+        let got = match &self.got {
+            Some(token) => token.to_expected(),
+            None => "nothing".into(),
+        };
+
+        if exp.len() == 0 {
+            format!("unexpected symbol {}", got)
+        } else if exp.len() == 1 {
+            format!("expected {}, found {}", &exp[0], got)
+        } else {
+            format!(
+                "expected {}or{}, found {}",
+                exp[1..]
+                    .iter()
+                    .map(|e| format!("{}, ", e))
+                    .collect::<String>(),
+                &exp[0],
+                got
+            )
+        }
+    }
+}
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -49,17 +78,18 @@ impl Error for ParseError {}
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
-pub fn parse(tokens: &[(Location, Token)]) -> ParseResult<Vec<BnfRule>> {
+pub fn parse(tokens: &[(Location, Token)]) -> Result<Vec<BnfRule>, Vec<ParseError>> {
     let lines = tokens.split(|t| t.1 == Token::Newline);
     let mut rules = Vec::new();
+    let mut errors = Vec::new();
     let mut line_count = 0;
 
-    let parse_result = (|| {
-        for mut line in lines {
-            if line.len() == 0 {
-                continue;
-            }
-
+    for mut line in lines {
+        if line.len() == 0 {
+            continue;
+        }
+        line_count += 1;
+        let parse_result = (|| {
             let line = &mut line;
 
             use Token::*;
@@ -72,23 +102,29 @@ pub fn parse(tokens: &[(Location, Token)]) -> ParseResult<Vec<BnfRule>> {
             let def = rparse(line, None)?;
             let rule = BnfRule { name, def };
             rules.push(rule);
-            line_count += 1;
-        }
-        Ok(())
-    })();
+            Ok(())
+        })();
+        let parse_result = parse_result.map_err(|mut e: ParseError| {
+            if e.location.is_none() {
+                e.location = tokens
+                    .iter()
+                    .filter(|(_, t)| t == &Token::Newline)
+                    .nth(line_count - 1)
+                    .map(|(l, _)| l.clone());
+            }
+            e
+        });
 
-    parse_result.map_err(|mut e: ParseError| {
-        if e.location.is_none() {
-            e.location = tokens
-                .iter()
-                .filter(|(_, t)| t == &Token::Newline)
-                .nth(line_count)
-                .map(|(l, _)| l.clone());
+        if let Err(err) = parse_result {
+            errors.push(err);
         }
-        e
-    })?;
+    }
 
-    Ok(rules)
+    if errors.len() == 0 {
+        Ok(rules)
+    } else {
+        Err(errors)
+    }
 }
 
 fn rparse(tokens: &mut &[(Location, Token)], mut closing: Option<Token>) -> ParseResult<BnfPart> {
@@ -163,4 +199,61 @@ fn rparse(tokens: &mut &[(Location, Token)], mut closing: Option<Token>) -> Pars
     };
 
     Ok(res)
+}
+
+pub fn format_errors(file: &str, source: &str, errors: Vec<ParseError>) -> String {
+    let chars = source.chars().collect::<Vec<_>>();
+
+    use console::Style;
+    let error_style = Style::new().red().bold();
+    let line_style = Style::new().blue().bold();
+
+    errors
+        .iter()
+        .map(|e| {
+            let location = match &e.location {
+                Some(l) => l,
+                None => return String::from("TODO"),
+            };
+            let (mut l_from, mut l_to) = location.clone().into_inner();
+            while l_from > 0 && chars[l_from - 1] != '\n' {
+                l_from -= 1;
+            }
+            while l_to < chars.len() && chars[l_to] != '\n' {
+                l_to += 1;
+            }
+            let (mut c_from, mut c_to) = location.clone().into_inner();
+            c_from -= l_from;
+            c_to -= l_from;
+
+            let line_chars = chars[l_from..l_to]
+                .iter()
+                .chain(Some(&' '))
+                .collect::<String>();
+
+            let line_number = 1 + chars[..l_from].iter().filter(|c| **c == '\n').count();
+            let line_fmt = |l| line_style.apply_to(format!("{: >3} |   ", l));
+
+            let context = format!(
+                "{}{}:{}:{}\n{}\n{}{}{}{}\n{}\n\n",
+                line_style.apply_to("   --> "),
+                file,
+                line_number,
+                c_from + 1,
+                line_fmt("".into()),
+                line_fmt(line_number.to_string()),
+                &line_chars[..c_from],
+                error_style.apply_to(&line_chars[c_from..=c_to]),
+                &line_chars[c_to + 1..],
+                line_fmt("".into()),
+            );
+
+            format!(
+                "{}: {}\n{}",
+                error_style.apply_to("error"),
+                e.message(),
+                context
+            )
+        })
+        .collect::<String>()
 }

@@ -11,4 +11,4 @@ rand = "0.8.3"
 
 [dependencies]
 structopt = { version = "0.3", default-features = false }
-
+console = { version = "0.14", default-features = false }
