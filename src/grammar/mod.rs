@@ -2,6 +2,7 @@ use std::fmt::{self, Display, Formatter};
 
 pub type NonTerminal = usize;
 pub type Terminal = Vec<char>;
+pub type TerminalRef<'a> = &'a [char];
 
 #[cfg(test)]
 mod test;
@@ -23,10 +24,7 @@ impl Display for Token {
 
 impl Token {
     pub fn is_terminal(&self) -> bool {
-        match self {
-            Self::T(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::T(_))
     }
     pub fn is_empty(&self) -> bool {
         if let Self::T(t) = self {
@@ -49,7 +47,7 @@ pub struct Grammar {
 
 impl Display for Grammar {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "Start: {}\n", self.start)?;
+        writeln!(f, "Start: {}", self.start)?;
         for (idx, rule) in self.rules.iter().enumerate() {
             write!(f, "{:>3 } -> ", idx)?;
             let mut first = true;
@@ -73,7 +71,7 @@ impl Display for Grammar {
             if first {
                 write!(f, "undefined")?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -169,7 +167,7 @@ impl Grammar {
 
         // remove duplicates
         for r in rev.iter_mut() {
-            r.sort();
+            r.sort_unstable();
             r.dedup();
         }
 
@@ -244,7 +242,7 @@ impl Grammar {
 
             // remove null productions unless it is the starting rule
             if idx != self.start {
-                rule.retain(|def| def.len() > 0);
+                rule.retain(|def| !def.is_empty());
             }
         }
     }

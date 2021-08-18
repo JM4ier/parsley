@@ -22,7 +22,7 @@ pub enum Token {
 impl ToString for Token {
     fn to_string(&self) -> String {
         let s = match self {
-            Self::String(s) => &s,
+            Self::String(s) => s,
             Self::RuleOpen => "<",
             Self::RuleClose => ">",
             Self::GroupOpen => "(",
@@ -84,14 +84,14 @@ pub fn lex(i: &str) -> Vec<(Location, Token)> {
                 continue;
             }
         };
-        if acc.len() > 0 {
+        if !acc.is_empty() {
             tokens.push((acc_begin..=acc_end, Token::String(acc)));
             acc = Default::default();
         }
         acc_begin = loc + 1;
         tokens.push((loc..=loc, t));
     }
-    if acc.len() > 0 {
+    if !acc.is_empty() {
         tokens.push((acc_begin..=acc_end, Token::String(acc)));
     }
     tokens

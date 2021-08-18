@@ -9,7 +9,7 @@ pub mod producer;
 
 use std::fs::*;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -41,12 +41,11 @@ enum Command {
     },
 }
 
-fn parse(file: &PathBuf) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
+fn parse(file: &Path) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
     let path = file
-        .clone()
-        .into_os_string()
-        .into_string()
-        .unwrap_or("<unknown file>".into());
+        .as_os_str()
+        .to_str()
+        .unwrap_or("<unknown file>");
     let mut file = std::fs::File::open(file)?;
     let mut ebnf = String::new();
     file.read_to_string(&mut ebnf)?;
@@ -56,7 +55,7 @@ fn parse(file: &PathBuf) -> Result<chomsky::Grammar, Box<dyn std::error::Error>>
     let rules = match parse::parse(&tokens) {
         Ok(rules) => rules,
         Err(errs) => {
-            print!("{}", parse::format_errors(&path, &ebnf, errs.clone()));
+            print!("{}", parse::format_errors(path, &ebnf, errs));
             println!("Error: aborting due to previous errors");
             std::process::exit(1);
         }
@@ -91,7 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut file = File::open(file)?;
             let mut buf = String::new();
             file.read_to_string(&mut buf)?;
-            let words = buf.split("\n");
+            let words = buf.split('\n');
 
             for word in words {
                 let yn = ["n", "y"][grammar.accepts(word) as usize];

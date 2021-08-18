@@ -1,5 +1,5 @@
 use crate::grammar;
-pub use grammar::{NonTerminal, Terminal};
+pub use grammar::{NonTerminal, Terminal, TerminalRef};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Definition {
@@ -35,10 +35,10 @@ impl Grammar {
             .iter()
             .enumerate()
             .map(|(idx, rul)| {
-                Ok(rul
+                rul
                     .iter()
                     .filter_map(|def| {
-                        if def.len() == 0 {
+                        if def.is_empty() {
                             if idx == grammar.start {
                                 null = true;
                                 None
@@ -63,7 +63,7 @@ impl Grammar {
                             Some(Err("rules can't contain more than two tokens."))
                         }
                     })
-                    .collect::<Result<_, &str>>()?)
+                    .collect::<Result<_, &str>>()
             })
             .collect::<Result<Vec<Rule>, &str>>()?;
         Ok(Self {
