@@ -62,13 +62,13 @@ pub fn lex(i: &str) -> Vec<(Location, Token)> {
         let from = i;
         let t = match ch {
             '<' => {
-                if let Some('=') = chars.get(i+1) {
+                if let Some('=') = chars.get(i + 1) {
                     i += 1;
                     Assign
                 } else {
                     RuleOpen
                 }
-            },
+            }
             '>' => RuleClose,
             '(' => GroupOpen,
             ')' => GroupClose,
