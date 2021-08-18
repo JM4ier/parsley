@@ -42,10 +42,7 @@ enum Command {
 }
 
 fn parse(file: &Path) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
-    let path = file
-        .as_os_str()
-        .to_str()
-        .unwrap_or("<unknown file>");
+    let path = file.as_os_str().to_string_lossy();
     let mut file = std::fs::File::open(file)?;
     let mut ebnf = String::new();
     file.read_to_string(&mut ebnf)?;
@@ -55,7 +52,7 @@ fn parse(file: &Path) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
     let rules = match parse::parse(&tokens) {
         Ok(rules) => rules,
         Err(errs) => {
-            print!("{}", parse::format_errors(path, &ebnf, errs));
+            print!("{}", parse::format_errors(&path, &ebnf, errs));
             println!("Error: aborting due to previous errors");
             std::process::exit(1);
         }
