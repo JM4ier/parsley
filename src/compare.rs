@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 fn compare(a: TerminalRef, b: TerminalRef) -> Ordering {
     match a.len().cmp(&b.len()) {
         Ordering::Equal => a.cmp(b),
-        other => other
+        other => other,
     }
 }
 

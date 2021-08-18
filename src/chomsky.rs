@@ -35,8 +35,7 @@ impl Grammar {
             .iter()
             .enumerate()
             .map(|(idx, rul)| {
-                rul
-                    .iter()
+                rul.iter()
                     .filter_map(|def| {
                         if def.is_empty() {
                             if idx == grammar.start {
