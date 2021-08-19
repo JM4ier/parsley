@@ -9,7 +9,7 @@ pub mod producer;
 
 use std::fs::*;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -41,12 +41,8 @@ enum Command {
     },
 }
 
-fn parse(file: &PathBuf) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
-    let path = file
-        .clone()
-        .into_os_string()
-        .into_string()
-        .unwrap_or("<unknown file>".into());
+fn parse(file: &Path) -> Result<chomsky::Grammar, Box<dyn std::error::Error>> {
+    let path = file.as_os_str().to_string_lossy();
     let mut file = std::fs::File::open(file)?;
     let mut ebnf = String::new();
     file.read_to_string(&mut ebnf)?;
