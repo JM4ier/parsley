@@ -1,6 +1,6 @@
 [package]
 name = "parsley"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Jonas Maier <1.jmaier.3@gmail.com>"]
 edition = "2018"
 
@@ -12,3 +12,4 @@ rand = "0.8.3"
 [dependencies]
 structopt = { version = "0.3", default-features = false }
 console = { version = "0.14", default-features = false }
+lazy_static = "1.4"

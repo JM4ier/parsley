@@ -202,11 +202,8 @@ fn rparse(tokens: &mut &[(Location, Token)], mut closing: Option<Token>) -> Pars
 }
 
 pub fn format_errors(file: &str, source: &str, errors: Vec<ParseError>) -> String {
+    use crate::styles::*;
     let chars = source.chars().collect::<Vec<_>>();
-
-    use console::Style;
-    let error_style = Style::new().red().bold();
-    let line_style = Style::new().blue().bold();
 
     errors
         .iter()
@@ -232,28 +229,23 @@ pub fn format_errors(file: &str, source: &str, errors: Vec<ParseError>) -> Strin
                 .collect::<String>();
 
             let line_number = 1 + chars[..l_from].iter().filter(|c| **c == '\n').count();
-            let line_fmt = |l| line_style.apply_to(format!("{: >3} |   ", l));
+            let line_fmt = |l| INFO.apply_to(format!("{: >3} |   ", l));
 
             let context = format!(
                 "{}{}:{}:{}\n{}\n{}{}{}{}\n{}\n\n",
-                line_style.apply_to("   --> "),
+                INFO.apply_to("   --> "),
                 file,
                 line_number,
                 c_from + 1,
                 line_fmt("".into()),
                 line_fmt(line_number.to_string()),
                 &line_chars[..c_from],
-                error_style.apply_to(&line_chars[c_from..=c_to]),
+                ERROR.apply_to(&line_chars[c_from..=c_to]),
                 &line_chars[c_to + 1..],
                 line_fmt("".into()),
             );
 
-            format!(
-                "{}: {}\n{}",
-                error_style.apply_to("error"),
-                e.message(),
-                context
-            )
+            format!("{}: {}\n{}", ERROR.apply_to("error"), e.message(), context)
         })
         .collect::<String>()
 }

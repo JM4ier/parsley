@@ -62,7 +62,10 @@ impl Display for Grammar {
                         write!(f, " ")?;
                     }
                     first_token = false;
-                    write!(f, "{}", token)?;
+                    match token {
+                        Token::NT(nt) => write!(f, "{}", nt)?,
+                        Token::T(t) => write!(f, "'{}'", t.iter().cloned().collect::<String>())?,
+                    }
                 }
                 if first_token {
                     write!(f, "\"\"")?;
