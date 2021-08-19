@@ -1,6 +1,6 @@
-<literal> : a
-<choice> : a | b
-<recursion> : a | <recursion> <recursion>
-<optional> : [a]
-<repetition> : {a}
-grouping> : (aA)(bB)
+<literal> <= a
+<choice> <= a | b
+<recursion> <= a | <recursion> <recursion>
+<optional> <= [a]
+<repetition> <= {a}
+grouping> <= (aA)(bB)

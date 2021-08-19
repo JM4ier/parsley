@@ -9,13 +9,10 @@ pub struct Comparison {
 }
 
 use std::cmp::Ordering;
-fn compare(a: &Terminal, b: &Terminal) -> Ordering {
-    if a.len() < b.len() {
-        Ordering::Less
-    } else if a.len() > b.len() {
-        Ordering::Greater
-    } else {
-        a.cmp(b)
+fn compare(a: TerminalRef, b: TerminalRef) -> Ordering {
+    match a.len().cmp(&b.len()) {
+        Ordering::Equal => a.cmp(b),
+        other => other,
     }
 }
 
@@ -34,7 +31,7 @@ impl Comparison {
         let words1 = prod1.all_buffered_words();
 
         if let Some(last) = words1.last() {
-            while let Some(w) = prod2.next() {
+            for w in &mut prod2 {
                 if w.len() >= last.len() {
                     break;
                 }

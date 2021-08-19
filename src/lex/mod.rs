@@ -22,7 +22,7 @@ pub enum Token {
 impl ToString for Token {
     fn to_string(&self) -> String {
         let s = match self {
-            Self::String(s) => &s,
+            Self::String(s) => s,
             Self::RuleOpen => "<",
             Self::RuleClose => ">",
             Self::GroupOpen => "(",
@@ -32,7 +32,7 @@ impl ToString for Token {
             Self::RepOpen => "{",
             Self::RepClose => "}",
             Self::Alternative => "|",
-            Self::Assign => ":",
+            Self::Assign => "<=",
             Self::Newline => "\\n",
         };
         s.to_string()
@@ -50,16 +50,25 @@ impl Token {
 }
 
 pub fn lex(i: &str) -> Vec<(Location, Token)> {
-    let mut tokens = Vec::new();
-    let mut chars = i.chars().enumerate();
-    let mut acc = String::new();
-    let mut acc_begin = 0;
-    let mut acc_end = 0;
+    use Token::*;
 
-    while let Some((loc, ch)) = chars.next() {
-        use Token::*;
+    let mut tokens = Vec::new();
+    let chars = i.chars().collect::<Vec<_>>();
+    let mut acc = std::string::String::new();
+    let mut acc_begin = 0;
+    let mut i = 0;
+
+    while let Some(ch) = chars.get(i) {
+        let from = i;
         let t = match ch {
-            '<' => RuleOpen,
+            '<' => {
+                if let Some('=') = chars.get(i + 1) {
+                    i += 1;
+                    Assign
+                } else {
+                    RuleOpen
+                }
+            }
             '>' => RuleClose,
             '(' => GroupOpen,
             ')' => GroupClose,
@@ -68,31 +77,36 @@ pub fn lex(i: &str) -> Vec<(Location, Token)> {
             '{' => RepOpen,
             '}' => RepClose,
             '|' => Alternative,
-            ':' => Assign,
             '\n' => Newline,
             '\\' => {
-                if let Some((end, ch)) = chars.next() {
-                    acc.push(ch);
-                    acc_end = end;
+                i += 1;
+                if let Some(ch) = chars.get(i) {
+                    acc.push(*ch);
+                    i += 1;
                 }
                 continue;
             }
-            ' ' | '\t' => continue,
+            ' ' | '\t' => {
+                i += 1;
+                continue;
+            }
             a => {
-                acc.push(a);
-                acc_end = loc;
+                acc.push(*a);
+                i += 1;
                 continue;
             }
         };
-        if acc.len() > 0 {
-            tokens.push((acc_begin..=acc_end, Token::String(acc)));
+        if !acc.is_empty() {
+            tokens.push((acc_begin..=i - 1, String(acc)));
             acc = Default::default();
         }
-        acc_begin = loc + 1;
-        tokens.push((loc..=loc, t));
+        acc_begin = i + 1;
+        tokens.push((from..=i, t));
+        i += 1;
     }
-    if acc.len() > 0 {
-        tokens.push((acc_begin..=acc_end, Token::String(acc)));
+
+    if !acc.is_empty() {
+        tokens.push((acc_begin..=i - 1, String(acc)));
     }
     tokens
 }

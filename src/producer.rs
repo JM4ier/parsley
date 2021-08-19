@@ -85,7 +85,7 @@ impl Producer {
     /// length of the current longest found word
     fn current_longest(&self) -> usize {
         for (len, words) in self.words.iter().enumerate().rev() {
-            if words[self.grammar.start].len() > 0 {
+            if !words[self.grammar.start].is_empty() {
                 return len;
             }
         }
