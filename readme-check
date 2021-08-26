@@ -1,0 +1,15 @@
+#! /bin/bash
+
+parsley() {
+  cargo run -- $@
+}
+
+while IFS= read -r line
+do
+  if [[ $line == parsley* ]] 
+  then
+    echo '$' $line
+    source <(echo "$line 2> /dev/null") | awk '{print "| " $0}'
+    echo
+  fi
+done < README.md

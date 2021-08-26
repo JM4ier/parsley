@@ -4,26 +4,33 @@ This program is a set of tools to check [EBNF rules](https://en.wikipedia.org/w/
 
 Note that this project uses a non standard syntax of EBNF that is taught in the course ["Introduction to Programming" at ETH](https://www.lst.inf.ethz.ch/education/archive/Fall2020/einfuehrung-in-die-programmierung-i--252-0027-.html)
 
-It is also still a work in progress.
-
 ## Usage
-As it's still a work in progress, some commands might change.
-I'll try to keep this readme updated at all times.
-
 To get an overview of all available commands, run
 ```
-$ cargo run -- help
+parsley help
 ```
 
 ### Examples
 ```
-$ cargo run -- rules/scream check 'a'
-$ cargo run -- rules/scream check 'aAaAaaAaa'
-$ cargo run -- rules/scream check 'foo'
+# checks for syntax errors in a file
+parsley parse rules/scream
+parsley parse rules/errors
 ```
 ```
-$ cargo run -- rules/scream compare-to rules/long-scream # prints words that differ in those two grammars
+# checks if the given word is contained in the language described by the given grammar
+parsley check rules/scream 'a'
+parsley check rules/scream 'aAaAaaAaa'
+parsley check rules/scream 'foo'
 ```
 ```
-$ cargo run -- rules/scream produce-words 50 # prints up to 50 words that are accepted by this grammar
+# checks if the list of words given by a file is contained in the language
+parsley check-file rules/scream rules/scream.test
+```
+```
+# prints words that differ in those two grammars
+parsley compare rules/scream rules/long-scream 
+```
+```
+# prints up to 50 words that are accepted by this grammar
+parsley produce-words rules/scream 50
 ```
