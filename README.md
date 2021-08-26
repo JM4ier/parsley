@@ -10,27 +10,37 @@ To get an overview of all available commands, run
 parsley help
 ```
 
-### Examples
+To check for syntax errors in a file, use the subcommand `parse`.
 ```
-# checks for syntax errors in a file
+# This should not contain any error
 parsley parse rules/scream
+
+# This should contain a wide range of syntax errors
 parsley parse rules/errors
 ```
+
+To check if a word is contained in a language described by some EBNF rules, use the subcommand `check`.
 ```
-# checks if the given word is contained in the language described by the given grammar
 parsley check rules/scream 'a'
 parsley check rules/scream 'aAaAaaAaa'
 parsley check rules/scream 'foo'
 ```
+
+To see if a whole list of words is contained in a language, use the subcommand `check-file`.
+Note: the words need to be separated by a newline.
 ```
-# checks if the list of words given by a file is contained in the language
 parsley check-file rules/scream rules/scream.test
 ```
+
+To compare two grammars, and see if there are words that are accepted by one but not the other, use the subcommand `compare`.
+There is an optional parameter to specify how many words to check.
 ```
-# prints words that differ in those two grammars
 parsley compare rules/scream rules/long-scream 
 ```
+
+To get a list of words that fit to a set of rules, use subcommand `produce-words`.
+There is an optional argument to specify how many words.
 ```
-# prints up to 50 words that are accepted by this grammar
+parsley produce-words rules/scream
 parsley produce-words rules/scream 50
 ```
