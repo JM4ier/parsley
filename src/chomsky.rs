@@ -80,8 +80,8 @@ impl Grammar {
         #[allow(non_snake_case)]
         let N = chars.len();
 
-        if N == 0 && self.null {
-            return true;
+        if N == 0 {
+            return self.null;
         }
 
         let mut p = vec![vec![vec![false; N + 1]; N]; self.rules.len()];
