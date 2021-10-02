@@ -1,6 +1,6 @@
 [package]
 name = "parsley"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Jonas Maier <1.jmaier.3@gmail.com>"]
 edition = "2018"
 

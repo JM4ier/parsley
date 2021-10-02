@@ -86,7 +86,7 @@ pub fn lex(i: &str) -> Vec<(Location, Token)> {
                 }
                 continue;
             }
-            ' ' | '\t' => {
+            ' ' | '\t' | '\r' => {
                 i += 1;
                 continue;
             }
