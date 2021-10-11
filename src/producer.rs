@@ -89,11 +89,24 @@ impl Producer {
                 return len;
             }
         }
-        1_000_000
+        0
+    }
+    /// returns the length of the longest literal of this language
+    fn longest_literal(&self) -> usize {
+        self.grammar
+            .rules
+            .iter()
+            .flatten()
+            .map(|def| match def {
+                Definition::Term(t) => t.len(),
+                _ => 0,
+            })
+            .max()
+            .unwrap_or(0)
     }
     /// whether it's possible that there are more words still
     fn finished(&self) -> bool {
-        self.words.len() > 2 * self.current_longest() + 1
+        self.words.len() > self.current_longest() + self.longest_literal() + 1
     }
     /// reference to the longest currently found words
     fn long_words(&self) -> &[Terminal] {
