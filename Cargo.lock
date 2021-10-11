@@ -78,7 +78,7 @@ checksum = "12b8adadd720df158f4d70dfe7ccc6adb0472d7c55ca83445f6a5ab3e36f8fb6"
 
 [[package]]
 name = "parsley"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "console",
  "lazy_static",
