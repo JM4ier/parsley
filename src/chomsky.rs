@@ -89,7 +89,10 @@ impl Grammar {
         for (r, rule) in self.rules.iter().enumerate() {
             for def in rule.iter() {
                 if let Definition::Term(term) = def {
-                    for start in 0..(N - term.len() + 1) {
+                    for start in 0..N {
+                        if start + term.len() > N {
+                            break;
+                        }
                         p[r][start][start + term.len()] |=
                             chars[start..start + term.len()] == term[..];
                     }
