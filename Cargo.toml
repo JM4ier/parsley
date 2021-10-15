@@ -13,3 +13,8 @@ rand = "0.8.3"
 structopt = { version = "0.3", default-features = false }
 console = { version = "0.14", default-features = false }
 lazy_static = "1.4"
+
+[profile.release]
+lto = true          # Enable Link Time Optimization
+codegen-units = 1   # Reduce number of codegen units to increase optimizations.
+

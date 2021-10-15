@@ -1,0 +1,11 @@
+#! /bin/bash
+
+# musl for static linking to avoid incompatibility of older libc versions
+# windows for, well, windows
+TARGETS='x86_64-unknown-linux-musl x86_64-pc-windows-gnu'
+
+for target in $TARGETS
+do
+    rustup target install $target
+    cargo build --release --target=$target
+done
