@@ -14,7 +14,7 @@ pub fn enabled() -> bool {
 macro_rules! debug {
     ($($args:tt)*) => {
         if $crate::log::enabled() {
-            print!($($args)*)
+            eprint!($($args)*)
         }
     }
 }

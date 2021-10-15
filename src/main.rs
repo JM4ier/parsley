@@ -64,7 +64,7 @@ fn parse(file: &Path) -> chomsky::Grammar {
             std::process::exit(1);
         }
     };
-    debugln!("{:?}", rules);
+    debugln!("{:?}\n", rules);
     let mut grammar = bnf::to_grammar(&rules, &rules[0].name);
     grammar.simplify();
     grammar.normalize();

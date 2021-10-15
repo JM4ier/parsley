@@ -1,3 +1,4 @@
+use crate::{debug, debugln};
 use std::fmt::{self, Display, Formatter};
 
 pub type NonTerminal = usize;
@@ -64,11 +65,11 @@ impl Display for Grammar {
                     first_token = false;
                     match token {
                         Token::NT(nt) => write!(f, "{}", nt)?,
-                        Token::T(t) => write!(f, "'{}'", t.iter().cloned().collect::<String>())?,
+                        Token::T(t) => write!(f, "{:?}", t.iter().cloned().collect::<String>())?,
                     }
                 }
                 if first_token {
-                    write!(f, "\"\"")?;
+                    write!(f, "{:?}", "")?;
                 }
             }
             if first {
@@ -94,14 +95,25 @@ impl Grammar {
 impl Grammar {
     /// Brings this grammar into CNF form
     pub fn normalize(&mut self) {
-        self.simplify();
-        self.n_start();
-        self.n_term();
-        self.n_bin();
-        self.n_del();
-        self.remove_cycles();
-        self.n_unit();
-        self.simplify();
+        debugln!("Grammar: normalize");
+        macro_rules! call {
+            ($($fn:ident),*) => {$(
+                debug!("  {: <15}", stringify!($fn));
+                self.$fn();
+                debugln!("[done]");
+            )*};
+        }
+        call!(
+            simplify,
+            n_start,
+            n_term,
+            n_bin,
+            n_del,
+            remove_cycles,
+            n_unit,
+            simplify
+        );
+        debugln!();
     }
 
     /// adds new starting point to avoid any rule producing the starting nonterminal
@@ -258,8 +270,11 @@ impl Grammar {
             while i < self.rules[r].len() {
                 if self.rules[r][i].len() == 1 {
                     if let Token::NT(nt) = self.rules[r][i][0] {
-                        let mut new_rules = self.rules[nt].clone();
-                        self.rules[r].append(&mut new_rules);
+                        for rule in self.rules[nt].clone() {
+                            if !self.rules[r].contains(&rule) {
+                                self.rules[r].push(rule)
+                            }
+                        }
                         removal.push(i);
                     }
                 }
