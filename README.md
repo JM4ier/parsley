@@ -51,3 +51,14 @@ There is an optional argument to specify how many words.
 parsley produce-words rules/scream
 parsley produce-words rules/scream 50
 ```
+
+## Installation
+There are a few different ways to install this software.
+
+There is the possibility to download prebuilt binaries in the releases tab.
+
+Alternatively you can install it by building it from source with
+```
+cargo install --git https://github.com/JM4ier/parsley
+```
+This requires an installed Rust compiler.
