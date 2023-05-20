@@ -1,16 +1,8 @@
-pub mod bnf;
-pub mod chomsky;
-pub mod compare;
-pub mod grammar;
-pub mod lex;
-pub mod log;
-pub mod parse;
-pub mod producer;
-pub mod styles;
-
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
+
+use parsley::*;
 
 #[derive(Debug, StructOpt)]
 struct Options {
