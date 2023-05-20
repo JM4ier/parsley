@@ -12,6 +12,7 @@ pub struct Producer {
     words: Vec<Vec<Terminals>>,
     /// what word to send next out of the ones with max length
     next: usize,
+    search_space: Option<usize>,
 }
 
 impl Producer {
@@ -25,8 +26,15 @@ impl Producer {
             words,
             grammar,
             next: 0,
+            search_space: None,
         }
     }
+
+    pub fn search_space(mut self, limit: usize) -> Self {
+        self.search_space = Some(limit);
+        self
+    }
+
     /// finds all words with next bigger size
     fn find_next_words(&mut self) {
         // length the new found words should have
@@ -108,7 +116,7 @@ impl Producer {
     }
     /// whether it's possible that there are more words still
     fn finished(&self) -> bool {
-        self.words.len() > 2 * self.current_longest() + self.longest_literal() + 1
+        self.words.len() > 2 * self.current_longest() + self.longest_literal() + 1 || self.current_longest() > self.search_space.unwrap_or(99999999)
     }
     /// reference to the longest currently found words
     fn long_words(&self) -> &[Terminal] {
